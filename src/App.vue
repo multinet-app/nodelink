@@ -6,6 +6,8 @@
 </template>
 
 <script>
+  import { graphql } from '@/util/multinet';
+
   export default {
     name: 'app',
 
@@ -30,20 +32,14 @@
         return;
       }
 
-      const response = await fetch('/multinet/graphql', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: `query {
-            nodes (workspace: "${workspace}", graph: "${graph}", nodeType: "author") {
-              total
-            }
-          }`
-        }),
-      });
-      const json = await response.json();
+      const json = await graphql(`query {
+        nodes (workspace: "${workspace}", graph: "${graph}", nodeType: "author") {
+          total
+          nodes (limit: 100) {
+            key
+          }
+        }
+      }`);
 
       if (json.errors.length > 0) {
         this.message = json.errors.join(', ');
