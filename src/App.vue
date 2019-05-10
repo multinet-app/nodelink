@@ -20,6 +20,16 @@
     },
 
     async mounted () {
+      // Get query parameters.
+      const url = new URL(window.location.href);
+      const workspace = url.searchParams.get('workspace');
+      const graph = url.searchParams.get('graph');
+
+      if (!workspace || !graph) {
+        this.message = '"workspace" and "graph" query arguments are required.';
+        return;
+      }
+
       const response = await fetch('/multinet/graphql', {
         method: 'POST',
         headers: {
@@ -27,13 +37,18 @@
         },
         body: JSON.stringify({
           query: `query {
-            nodes (workspace: "dblp", graph: "coauth", nodeType: "author") {
+            nodes (workspace: "${workspace}", graph: "${graph}", nodeType: "author") {
               total
             }
           }`
         }),
       });
       const json = await response.json();
+
+      if (json.errors.length > 0) {
+        this.message = json.errors.join(', ');
+        return;
+      }
 
       this.message = `${json.data.nodes.total} nodes`;
     }
