@@ -9,6 +9,9 @@
   },
   "dependencies": {
     "core-js": "^2.6.5",
+    "d3-drag": "^1.2.3",
+    "d3-force": "^2.0.1",
+    "d3-selection": "^1.4.0",
     "vue": "^2.6.10"
   },
   "devDependencies": {

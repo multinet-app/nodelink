@@ -1,8 +1,8 @@
 <template>
   <div id="app">
     <h1>Welcome to Your Vue.js App</h1>
-    <span>{{ message }}</span>
     <node-link :graph="graph" />
+    <div>{{ message }}</div>
   </div>
 </template>
 
@@ -12,7 +12,7 @@
   import { graphql } from '@/util/multinet';
 
   async function getNodes (workspace, graph, nodeType) {
-    const limit = 10;
+    const limit = 100;
     const result = await graphql(`query {
         nodes (workspace: "${workspace}", graph: "${graph}", nodeType: "${nodeType}") {
           total
@@ -34,7 +34,10 @@
     data () {
       return {
         message: '(waiting for data)',
-        graph: null,
+        graph: {
+          nodes: [],
+          edges: [],
+        },
       };
     },
 
@@ -58,7 +61,7 @@
 
       this.graph = {
         nodes,
-        edges
+        edges,
       };
     },
 
@@ -96,13 +99,14 @@
             }
           }`);
 
-          const edges = edgeQ.data.rows.rows.map((edge) => {
+          let edges = edgeQ.data.rows.rows.map((edge) => {
             let result = {
               key: edge.key
             };
 
             edge.columns.forEach((col) => {
-              result[col.key.slice(1)] = col.value;
+              const key = col.key === '_from' ? 'source' : 'target';
+              result[key] = col.value;
             });
 
             return result;
@@ -111,7 +115,7 @@
           offset += edges.length;
 
           edges = edges.filter((edge) => {
-            return keys.has(edge.from) || keys.has(edge.to);
+            return keys.has(edge.source) && keys.has(edge.target);
           });
 
           finalEdges = finalEdges.concat(edges);
