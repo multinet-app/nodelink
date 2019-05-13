@@ -11,6 +11,8 @@
   import { select, event } from 'd3-selection';
   import { forceSimulation, forceLink, forceManyBody, forceX, forceY } from 'd3-force';
   import { drag } from 'd3-drag';
+  import { scaleOrdinal } from 'd3-scale';
+  import { schemeCategory10 } from 'd3-scale-chromatic';
 
   export default {
     name: 'node-link',
@@ -93,6 +95,8 @@
             .on('end', dragended);
         };
 
+        const color = scaleOrdinal(schemeCategory10);
+
         const node = svg.select('g.nodes')
           .attr('stroke', '#fff')
           .attr('stroke-width', 1.5)
@@ -100,7 +104,7 @@
           .data(graph.nodes)
           .join('circle')
           .attr('r', 5)
-          .attr('fill', 'blue')
+          .attr('fill', d => color(d.type))
           .call(dragFunc(simulation));
 
         node.append('title')

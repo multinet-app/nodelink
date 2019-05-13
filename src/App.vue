@@ -14,14 +14,29 @@
   async function getNodes (workspace, graph, nodeType) {
     const limit = 100;
     const result = await graphql(`query {
-        nodes (workspace: "${workspace}", graph: "${graph}", nodeType: "${nodeType}") {
-          total
-          nodes (limit: ${limit}) {
+      nodes (workspace: "${workspace}", graph: "${graph}", nodeType: "${nodeType}") {
+        total
+        nodes (limit: ${limit}) {
+          key
+          properties (keys: ["type"]) {
             key
+            value
           }
         }
-      }`);
-    return result.data.nodes.nodes;
+      }
+    }`);
+
+    return result.data.nodes.nodes.map((node) => {
+      let rec = {
+        key: node.key
+      };
+
+      node.properties.forEach(({key, value}) => {
+        rec[key] = value;
+      });
+
+      return rec;
+    });
   }
 
   export default {
