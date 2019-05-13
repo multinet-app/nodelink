@@ -18,7 +18,7 @@
         total
         nodes (limit: ${limit}) {
           key
-          properties (keys: ["type"]) {
+          properties (keys: ["type", "name", "title"]) {
             key
             value
           }

@@ -108,7 +108,7 @@
           .call(dragFunc(simulation));
 
         node.append('title')
-          .text(d => d.key);
+          .text(d => d.name || d.title);
 
         simulation.on('tick', () => {
           link.attr('x1', d => d.source.x)
