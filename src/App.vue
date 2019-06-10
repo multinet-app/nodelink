@@ -11,22 +11,24 @@
 
   import { graphql } from '@/util/multinet';
 
-  async function getNodes (workspace, graph, nodeType) {
+  async function getNodes (workspace, graph) {
     const limit = 100;
     const result = await graphql(`query {
-      nodes (workspace: "${workspace}", graph: "${graph}", nodeType: "${nodeType}") {
-        total
-        nodes (limit: ${limit}) {
-          key
-          properties (keys: ["type", "name", "title"]) {
+      graph (workspace: "${workspace}", name: "${graph}") {
+        nodes {
+          total
+          data (limit: ${limit}) {
             key
-            value
+            properties (keys: ["type", "name", "title"]) {
+              key
+              value
+            }
           }
         }
       }
     }`);
 
-    return result.data.nodes.nodes.map((node) => {
+    return result.data.graph.nodes.data.map((node) => {
       let rec = {
         key: node.key
       };
@@ -67,12 +69,8 @@
         return;
       }
 
-      const authors = await getNodes(workspace, graph, 'author');
-      const conf = await getNodes(workspace, graph, 'conference');
-      const journal = await getNodes(workspace, graph, 'journal');
-      const nodes = [].concat(authors, conf, journal);
-
-      const edges = await this.getEdges(workspace, 'authorship', nodes);
+      const nodes = await getNodes(workspace, graph);
+      const edges = await this.getEdges(workspace, graph, nodes);
 
       this.graph = {
         nodes,
@@ -81,64 +79,52 @@
     },
 
     methods: {
-      async getEdges (workspace, table, nodes) {
+      async getEdges (workspace, graph, nodes) {
         const keys = new Set();
         nodes.forEach((node) => {
           keys.add(node.key);
         });
 
-        const countQ = await graphql(`query {
-          rows (workspace: "${workspace}", table: "${table}") {
-            total
-          }
-        }`);
-        const count = countQ.data.rows.total;
-
         let offset = 0;
         const limit = 10000;
-        let finalEdges = [];
-        while (offset < count) {
-          this.message = `Processing edges ${offset} through ${Math.min(offset +
-          limit, count + 1)}`;
-
-          const edgeQ = await graphql(`query {
-            rows (workspace: "${workspace}", table: "${table}") {
+        const edgeQ = await graphql(`query {
+          graph (workspace: "${workspace}", name: "${graph}") {
+            edges {
               total
-              rows (offset: ${offset}, limit: ${limit}) {
+              data (offset: ${offset}, limit: ${limit}) {
                 key
-                columns (keys: ["_from", "_to"]) {
+                properties (keys: ["_from", "_to"]) {
                   key
                   value
                 }
               }
             }
-          }`);
+          }
+        }`);
+        const count = edgeQ.data.graph.edges.total;
 
-          let edges = edgeQ.data.rows.rows.map((edge) => {
-            let result = {
-              key: edge.key
-            };
+        let edges = edgeQ.data.graph.edges.data.map((edge) => {
+          let result = {
+            key: edge.key
+          };
 
-            edge.columns.forEach((col) => {
-              const key = col.key === '_from' ? 'source' : 'target';
-              result[key] = col.value;
-            });
-
-            return result;
+          edge.properties.forEach((col) => {
+            const key = col.key === '_from' ? 'source' : 'target';
+            result[key] = col.value;
           });
 
-          offset += edges.length;
+          return result;
+        });
 
-          edges = edges.filter((edge) => {
-            return keys.has(edge.source) && keys.has(edge.target);
-          });
+        offset += edges.length;
 
-          finalEdges = finalEdges.concat(edges);
-        }
+        edges = edges.filter((edge) => {
+          return keys.has(edge.source) && keys.has(edge.target);
+        });
 
-        this.message = `Processed ${count} edges; found ${finalEdges.length} edges`
+        this.message = `Processed ${count} edges; found ${edges.length} edges`
 
-        return finalEdges;
+        return edges;
       },
     },
   };
